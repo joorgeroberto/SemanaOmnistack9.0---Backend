@@ -19,6 +19,14 @@ module.exports = {
         // Populando as tabelas de usuario e de local para q a reserva fique atrelada a eles.
         await booking.populate('spot').populate('user').execPopulate();
 
+        // Verificando se o usuário dono do spot está conectado.
+        const ownerSocket = req.connectedUsers[booking.spot.user];
+
+        // Se o usuário estiver conectado, envia uma mensagem booking request.
+        if (ownerSocket) {
+            req.io.to(ownerSocket).emit('booking_request', booking);
+        }
+
         return res.json( booking );
     }
 };

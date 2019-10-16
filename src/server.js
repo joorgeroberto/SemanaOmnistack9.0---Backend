@@ -13,8 +13,41 @@ const routes = require('./routes');
 const app = express();
 // Pegando o servidor http do express.
 const server = http.Server(app);
-// Agora o server tambem consegue ouvir o protocolo WebSocket
+// Agora o server tambem consegue ouvir o protocolo WebSocket.
+// Usaremos o io para enviar e receber mensagens.
 const io = socketio(server);
+
+// Guardando os usuários conectados na aplicação.
+// NÃO É O IDEIAL!
+// O ideal é guardar estes dados em um BD para que quando o servidor for reiniciado, os usuários logados não sejam perdidos.
+const connectUsers = {};
+
+// "Anotaremos" todos os usuários logado na aplicação e retornaremos nesta função.
+io.on('connection', socket => {
+  console.log(socket.handshake.query);
+  console.log('Usuário conectado', socket.id);
+
+  // Enviando uma mensagem quando o usuário loga na aplicação.
+  // Mensagem que se chama "hello" e conteudo "World"
+  //socket.emit('hello', 'World');
+
+  const { user_id } = socket.handshake.query;
+
+  connectUsers[user_id] = socket.id;
+});
+
+// Deixando o connectUsers disponível para toda a aplicação.
+// req/res funcionam como definido anteriormente.
+// O next é uma função que, quando chamada, indica que queremos continuar o fluxo da aplicação.
+// Se não usamos o next, não podemos continuar com o fluxo. Com as rotas da aplicação definidas abaixo.
+app.use((req, res, next) => {
+  // Estas informações estão disponíveis para todas as rotas da aplicação agora.
+  req.io = io;
+  req.connectedUsers = connectUsers;
+
+  // Continuando o fluxo das rotas da aplicação.
+  return next();
+});
 
 // Com esta linha, faremos requisições para o servidor MongoDB
 mongoose.connect('mongodb+srv://omnistack:omnistack@cluster0-9qxgt.mongodb.net/semana09?retryWrites=true&w=majority', {
